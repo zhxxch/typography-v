@@ -1,0 +1,29 @@
+body{
+	max-width: 600px;
+	margin:1em auto;
+}
+canvas{
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAIBJREFUeNqUkjkOwCAMBI1BQM3//8khEDEiDeGKt/WMC3uF9x7G5JxTSs45WAWXtDEGNhmEUkqMUWstpbwLRIcQaLdSCvZBFv0K/+kmsOgmsGiKqLUuB7RovjjdEH8u7rS1Flk0/QdZ9KIaZ/oizPRJoP/0Fn56tRV6C+f/PAIMANQHYuBtynNrAAAAAElFTkSuQmCC");
+	background-repeat: repeat;
+}
+#par-input{
+	width:100%;
+}
+#print-container{
+	max-height: 300px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+#memstat-container{
+	text-align: right;
+}
+#timer-fps,#timer-ttl,#timer-cmp,#memstat-lines,#memstat-hlist{
+	display: inline-block;
+    text-align: right;
+}
+#timer-fps,#timer-ttl{
+	min-width: 4em;
+}
+#timer-cmp{
+	min-width: 3em;
+}
