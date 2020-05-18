@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="https://deliver.inv.ariant.cn/assets/css/exp2parcomposer.min.css">
+<title>排版探险：段落书写器</title>
+<header class="m-3">
+	<h1 class="p-4 mb-3 shadow">排版系统探险计划——第2站——段落书写器</h1>
+</header>
+<section class="m-3">
+	<div class="card mb-3">
+		<div class="card-header">
+			<ul class="nav nav-pills card-header-pills">
+				<li class="nav-item">
+					<span class="nav-link btn-secondary">文字</span>
+				</li>
+				<li class="nav-item">
+					<div title="点击刷新排版" class="nav-link" id="start-composer"><code id="timer-fps">0</code>fps=<code
+							id="timer-ttl">0</code>ms；断行<code id="timer-cmp">0</code>ms；<code
+							id="memstat-lines">0</code>行；<code id="memstat-hlist">0</code>排版符</span><span
+							id="warning-container" class="text-danger ml-2"></span>
+
+				</li>
+			</ul>
+		</div>
+		<div class="card-body">
+			<p><textarea name="text-box" class="form-control" id="par-input"
+					rows="3">滚滚长江东逝水，浪花淘尽英雄。是非成败转头空。青山依旧在，几度夕阳红。白发渔樵江渚上，惯看秋月春风。一壶浊酒喜相逢。古今多少事，都付笑谈中。Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</textarea>
+			</p>
+		</div>
+	</div>
+
+<section name="printoutput" id="print-container" class="rounded shadow">
+	<canvas id="composer-canvas"></canvas>
+</section>
+</section>
+<section class="m-3">
+	<div class="card mb-3">
+		<div class="card-header">
+			<ul class="nav nav-pills card-header-pills">
+				<li class="nav-item">
+					<span class="nav-link btn-secondary">格式</span>
+				</li>
+				<li class="nav-item">
+					<span class="nav-link">编译格式<code id="timer-fmt">0</code>ms</span>
+				</li>
+			</ul>
+		</div>
+		<div class="card-body">
+			<p><textarea name="format-box" class="form-control" id="format-input"
+					rows="3">\everypar{\hbox{}}\parfillskip=0plus1000\rightskip=0plus5\xCJKskip=8plus5minus2\spaceskip=12plus10minus1\XBfillskip=0plus0minus12\AtEndXB{\penalty10000\hskip-12\penalty0\hskip12}\everyXA{\hskip0plus0minus12}\AtBeginXA{\penalty10000\hskip4\hbox{}\penalty10000\hskip-4}</textarea>
+			</p>
+			<div class="input-group mb-3">
+				<div class="input-group-prepend">
+					<span class="input-group-text" id="basic-addon1">字体</span>
+				</div>
+				<input type="text" class="form-control" value="仿宋" id="fontname-input">
+				<div class="input-group-prepend">
+					<span class="input-group-text" id="basic-addon1">字号(px)</span>
+				</div>
+				<input type="number" class="form-control" value="24" id="fontsize-input">
+			</div>
+			<div class="input-group mb-3">
+				<div class="input-group-prepend">
+					<span class="input-group-text" id="basic-addon1">行宽(px)</span>
+				</div>
+				<input type="number" class="form-control" value="250" id="linewidth-input">
+				<div class="input-group-prepend">
+					<span class="input-group-text" id="basic-addon1">行高(px)</span>
+				</div>
+				<input type="number" class="form-control" placeholder="NNN px" value="28" id="lineheight-input">
+			</div>
+		</div>
+	</div>
+</section>
+<hr>
+<section class="m-3">
+	<h2 id="intro" class="p-4 mb-3 shadow">Knuth-Plass断行算法</h2>
+	<p>段落书写器（paragraph composer）一次排一整段，比每次排一行的单行书写器（single-line
+		composer）排版更加美观。此页面加载了WebAssembly版的Knuth-Plass断行算法，支持Unicode中英文混排，中文标点避头避尾和标点悬挂等。参考了<a
+			href="http://www.w3.org/TR/clreq/">W3C《中文排版需求》</a>和<a href="https://www.unicode.org/reports/tr14/">Unicode
+			Standard AnneX 14</a>以正确实现排版禁则。</p>
+	<h2 id="manual" class="p-4 mb-3 shadow">使用说明</h2>
+	<h3 id="primitives-intro">控制命令的说明</h3>
+	<p>以下三个命令可以在<a href="#controlseq-intro">格式控制命令</a>（见下节）的大括号中使用。</p>
+	<ul>
+		<li>
+			<p>盒子（box）：<code>\hbox{}</code></p>
+			<p>空的水平盒子，尺寸为0，大括号中不应填入任何内容。</p>
+		</li>
+		<li>
+			<p>间隔（glue）：<code>\hskip&lt;glue&gt;</code></p>
+			<p>其中<code>&lt;glue&gt; = &lt;number&gt; [plus &lt;number&gt; [minus &lt;number&gt;]]</code>，<code>&lt;number&gt;</code>为浮点数，分别是&lt;间隔宽度&gt;plus&lt;间隔伸展量&gt;minus&lt;间隔压缩量&gt;。
+			</p>
+		</li>
+		<li>
+			<p>断行代价（penalty）：<code>\penalty&lt;number&gt;</code></p>
+			<p>插入断行点，<code>\penalty10000</code>将禁止断行。</p>
+		</li>
+	</ul>
+	<h3 id="controlseq-intro">格式控制命令</h3>
+	<p><code>\everyhbox{&lt;token list&gt;}</code> 将控制命令插入到每个水平盒子（box）前。</p>
+	<p><code>\everypar{&lt;token list&gt;}</code> 将控制命令插入到整个段落前，\indent请通过此命令实现。</p>
+	<p><code>\spaceskip=&lt;glue&gt;</code> 空格和空白字符对应的间隔（glue）。</p>
+	<p><code>\leftskip=&lt;glue&gt;</code> 左边距，插入到新的一行前的间隔（glue）。</p>
+	<p><code>\rightskip=&lt;glue&gt;</code> 右边距，插入到一行结尾处的间隔（glue）。</p>
+	<p><code>\parfillskip=&lt;glue&gt;</code>
+		作为段落结尾，插入到段落最后的间隔（glue），一般设置为可伸展至略小于末行长度，以避免末行孤字。如果设置为空，即0plus0minus0，整段文字将排成精确的矩形。</p>
+	<p><code>\CJKskip=&lt;glue&gt;</code> 汉字之间的间隔（glue）。</p>
+	<p><code>\xCJKskip=&lt;glue&gt;</code> 汉字和西文之间的间隔（glue）。</p>
+	<p><code>\everyXA{&lt;token list&gt;}</code> 将控制命令插入到每个避尾的中文标点前。</p>
+	<p><code>\XAfillskip=&lt;glue&gt;</code> 避尾中文标点字符后的间隔（glue）。</p>
+	<p><code>\everyXB{&lt;token list&gt;}</code> 将控制命令插入到每个避头的中文标点前。</p>
+	<p><code>\XBfillskip=&lt;glue&gt;</code> 避头中文标点字符后的间隔（glue）。</p>
+	<p><code>\AtBeginXA{&lt;token list&gt;}</code> 将控制命令插入到整组（一个及以上）连续的避尾中文标点前。</p>
+	<p><code>\AtEndXB{&lt;token list&gt;}</code> 将控制命令插入到整组（一个及以上）连续的避头中文标点后。</p>
+	<hr>
+	<h2 id="intro" class="p-4 mb-3 shadow"><a href="/">排版系统探险计划</a>——其他站点</h2>
+	<ul>
+		<li><a href="exp1unicode.html">第1站：Unicode</a></li>
+		<li><a href="exp2parcomposer.html">第2站：段落书写器</a></li>
+		<li><a href="exp3pagination.html">第3站：分页</a></li>
+		<li><a href="exp4mathmode.html">第4站：数学模式</a></li>
+	</ul>
+	<hr>
+</section>
+<footer class="m-3">
+	<span class="m-3"><a href="https://jinshuju.net/f/Fgg9o7" target="_blank">∥写留言</a></span>
+	<span class="m-3">∥文镌万化∥typography.v.ariant.cn∥致力于更好的中文排版</span>
+	<!-- 留言板 -->
+	<span style="visibility: hidden;">
+	<script type="text/javascript" src="https://s4.cnzz.com/z_stat.php?id=1277931924&web_id=1277931924"></script>
+</span>
+</footer>
+<script src="https://deliver.inv.ariant.cn/assets/js/exp2parcomposer.min.js"></script>
+
+</html>
